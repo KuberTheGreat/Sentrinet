@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KuberTheGreat/Sentrinet/internal/handlers"
 	"github.com/KuberTheGreat/Sentrinet/internal/models"
 	"github.com/KuberTheGreat/Sentrinet/internal/scan"
 	"github.com/KuberTheGreat/Sentrinet/internal/scheduler"
@@ -41,6 +42,7 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB){
 			)
 
 			if err != nil{
+				handlers.CreateNotification(db, 1, 1, "scan_failed", fmt.Sprintf("Scan for %s failed to complete.", req.Target))
 				fmt.Println("Insert error: ", err)
 			} else{
 				id, _ := res.LastInsertId()
@@ -48,6 +50,7 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB){
 			}
 		}
 
+		handlers.CreateNotification(db, 1, 1, "scan_completed", fmt.Sprintf("Scan for %s is complete!", req.Target))
 		return c.JSON(results)
 	})
 
@@ -214,4 +217,8 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB){
 		return c.JSON(fiber.Map{"message":"deleted"})
 	})
 
+	app.Get("/api/scans", handlers.GetScansHandler(db))
+	app.Get("/api/jobs", handlers.GetJobsHandler(db))
+	app.Get("/notifications/:userId", handlers.GetUserNotifications(db))
+	app.Put("/notifications/:id/read", handlers.MarkNotificationRead(db))
 }

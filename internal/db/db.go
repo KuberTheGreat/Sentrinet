@@ -32,6 +32,16 @@ func InitDB() *sqlx.DB{
 		active INTEGER NOT NULL DEFAULT 1,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
+
+	CREATE TABLE IF NOT EXISTS notifications(
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER,
+		scan_id INTEGER,
+		type TEXT,
+		message TEXT,
+		read BOOLEAN DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)
 	`
 
 	db.MustExec(schema)
