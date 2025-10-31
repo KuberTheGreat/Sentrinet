@@ -108,4 +108,31 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB){
 
 		return c.JSON(stats)
 	})
+
+	app.Delete("/scans/:id", func(c *fiber.Ctx) error {
+		id := c.Params("id")
+		_, err := db.Exec("DELETE FROM scans WHERE id = ?", id)
+		if err != nil{
+			log.Println("Delete error: ", err)
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to delete record"})
+		}
+
+		return c.JSON(fiber.Map{"message": fmt.Sprintf("Deleted scan with id %s", id)})
+	})
+
+	app.Delete("/scans", func(c *fiber.Ctx) error{
+		target := c.Query("target", "")
+		if target == ""{
+			return c.Status(400).JSON(fiber.Map{"error": "target query parameter required"})
+		}
+
+		res, err := db.Exec("DELETE FROM scans WHERE target = ?", target)
+		if err != nil{
+			log.Println("Delete error: ", err)
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to delete records"})
+		}
+
+		count, _ := res.RowsAffected()
+		return c.JSON(fiber.Map{"message": fmt.Sprintf("Delete %d scans for target %s", count, target)})
+	})
 }
