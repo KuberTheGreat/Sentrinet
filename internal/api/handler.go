@@ -1,13 +1,16 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/KuberTheGreat/Sentrinet/internal/models"
 	"github.com/KuberTheGreat/Sentrinet/internal/scan"
+	"github.com/KuberTheGreat/Sentrinet/internal/scheduler"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jmoiron/sqlx"
 )
@@ -135,4 +138,80 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB){
 		count, _ := res.RowsAffected()
 		return c.JSON(fiber.Map{"message": fmt.Sprintf("Delete %d scans for target %s", count, target)})
 	})
+
+	schManager := scheduler.NewManager(context.Background(), db)
+	if err := schManager.LoadAndStartAll(); err != nil {
+		fmt.Println("[Scheduler] failed to load jobs: ", err)
+	}
+
+	app.Post("/schedules", func(c *fiber.Ctx) error {
+		var req struct{
+			Target    string `json:"target"`
+			StartPort int    `json:"start_port"`
+			EndPort   int    `json:"end_port"`
+			IntervalSeconds int `json:"interval_seconds"`
+			Active    bool   `json:"active"`
+		}
+
+		if err := c.BodyParser(&req); err != nil{
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		if req.Target == "" || req.StartPort <= 0 || req.EndPort <= 0 || req.IntervalSeconds <= 0 {
+			return c.Status(400).JSON(fiber.Map{"error": "target, ports and interval seconds are required"})
+		}
+		interval := time.Duration(req.IntervalSeconds) * time.Second
+		id, err := schManager.CreateJob(req.Target, req.StartPort, req.EndPort, interval, req.Active)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.JSON(fiber.Map{"id": id})
+	})
+
+	app.Get("/schedules", func(c *fiber.Ctx) error {
+		rows, err := schManager.ListJobs()
+		if err != nil{
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.JSON(rows)
+	})
+
+	app.Post("/schedules/:id/stop", func(c *fiber.Ctx) error{
+		idStr := c.Params("id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil{
+			return c.Status(400).JSON(fiber.Map{"error": "invalid id"})
+		}
+		if err := schManager.StopJob(id); err != nil{
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.JSON(fiber.Map{"message": "stopped"})
+	})
+
+	app.Post("/schedules/:id/start", func(c *fiber.Ctx) error {
+		idStr := c.Params("id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error":"invalid id"})
+		}
+		if err := schManager.StartJobByID(id); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"message":"started"})
+	})
+
+	app.Delete("/schedules/:id", func(c *fiber.Ctx) error {
+		idStr := c.Params("id")
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error":"invalid id"})
+		}
+		if err := schManager.DeleteJob(id); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{"message":"deleted"})
+	})
+
 }
