@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -10,9 +11,11 @@ import (
 
 	"github.com/KuberTheGreat/Sentrinet/internal/handlers"
 	"github.com/KuberTheGreat/Sentrinet/internal/models"
+	"github.com/KuberTheGreat/Sentrinet/internal/realtime"
 	"github.com/KuberTheGreat/Sentrinet/internal/scan"
 	"github.com/KuberTheGreat/Sentrinet/internal/scheduler"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -22,7 +25,7 @@ type ScanRequest struct {
 	EndPort int `json:"end_port"`
 }
 
-func SetupRoutes(app *fiber.App, db *sqlx.DB){
+func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 	app.Post("/scan", func(c *fiber.Ctx) error {
 		var req ScanRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -50,7 +53,9 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB){
 			}
 		}
 
-		handlers.CreateNotification(db, 1, 1, "scan_completed", fmt.Sprintf("Scan for %s is complete!", req.Target))
+		data, _ := json.Marshal(results)
+		wsManager.Broadcast(data)
+
 		return c.JSON(results)
 	})
 
@@ -219,6 +224,21 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB){
 
 	app.Get("/api/scans", handlers.GetScansHandler(db))
 	app.Get("/api/jobs", handlers.GetJobsHandler(db))
+
+	//Notifications
 	app.Get("/notifications/:userId", handlers.GetUserNotifications(db))
 	app.Put("/notifications/:id/read", handlers.MarkNotificationRead(db))
+
+	//Websocket endpoints
+	app.Get("/ws", websocket.New(func(c *websocket.Conn) {
+		wsManager.Register(c)
+		defer wsManager.Unregister(c)
+		for {
+			_, msg, err := c.ReadMessage()
+			if err!= nil{
+				break
+			}
+			fmt.Printf("[WS] message: %s\n", msg)
+		}
+	}))
 }

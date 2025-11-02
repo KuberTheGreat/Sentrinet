@@ -12,8 +12,8 @@ import (
 
 	"github.com/KuberTheGreat/Sentrinet/internal/api"
 	"github.com/KuberTheGreat/Sentrinet/internal/db"
+	"github.com/KuberTheGreat/Sentrinet/internal/realtime"
 
-	// "github.com/KuberTheGreat/Sentrinet/internal/scheduler"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -24,7 +24,9 @@ func main(){
 	database := db.InitDB()
 	app := fiber.New()
 
-	api.SetupRoutes(app, database)
+	wsManager := realtime.NewManager()
+	
+	api.SetupRoutes(app, database, wsManager)
 
 	go func() {
 		if err := app.Listen(":8080"); err != nil{
