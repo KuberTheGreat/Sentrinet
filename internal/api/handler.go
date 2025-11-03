@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KuberTheGreat/Sentrinet/internal/auth"
 	"github.com/KuberTheGreat/Sentrinet/internal/handlers"
 	"github.com/KuberTheGreat/Sentrinet/internal/models"
 	"github.com/KuberTheGreat/Sentrinet/internal/realtime"
@@ -54,7 +55,7 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 		}
 
 		data, _ := json.Marshal(results)
-		wsManager.Broadcast(data)
+		wsManager.Broadcast("Scan complete", data)
 
 		return c.JSON(results)
 	})
@@ -241,4 +242,16 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 			fmt.Printf("[WS] message: %s\n", msg)
 		}
 	}))
+
+	//Authentication
+
+	authHandler := auth.NewAuthHandler(db)
+	
+	app.Post("/register", authHandler.Register)
+	app.Post("/login", authHandler.Login)
+	
+	app.Get("/secure", auth.JWTMiddleware, func (c *fiber.Ctx) error {
+		userID := c.Locals("user_id")
+		return c.JSON(fiber.Map{"message": "Hello user!", "id": userID})
+	})
 }

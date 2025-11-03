@@ -41,6 +41,13 @@ func InitDB() *sqlx.DB{
 		message TEXT,
 		read BOOLEAN DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE TABLE IF NOT EXISTS users(
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT,
+		password_hash TEXT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	)
 	`
 
