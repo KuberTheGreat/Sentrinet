@@ -15,6 +15,7 @@ import (
 	"github.com/KuberTheGreat/Sentrinet/internal/realtime"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main(){
@@ -23,6 +24,12 @@ func main(){
 	
 	database := db.InitDB()
 	app := fiber.New()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:3000",
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+	}))
 
 	wsManager := realtime.NewManager()
 	
