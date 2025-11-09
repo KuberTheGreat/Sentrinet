@@ -20,7 +20,8 @@ func InitDB() *sqlx.DB{
 		port INTEGER,
 		is_open BOOLEAN,
 		duration_ms INTEGER,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		user_id INTEGER REFERENCES users(id)
 	);
 
 	CREATE TABLE IF NOT EXISTS jobs(
@@ -35,8 +36,8 @@ func InitDB() *sqlx.DB{
 
 	CREATE TABLE IF NOT EXISTS notifications(
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		user_id INTEGER,
-		scan_id INTEGER,
+		user_id INTEGER REFERENCES users(id),
+		scan_id INTEGER REFERENCES scans(id),
 		type TEXT,
 		message TEXT,
 		read BOOLEAN DEFAULT 0,
@@ -48,7 +49,7 @@ func InitDB() *sqlx.DB{
 		username TEXT,
 		password_hash TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	)
+	);
 	`
 
 	db.MustExec(schema)

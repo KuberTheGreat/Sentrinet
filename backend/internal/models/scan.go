@@ -9,4 +9,5 @@ type ScanResult struct {
 	IsOpen bool `db:"is_open" json:"is_open"`
 	Duration int64 `db:"duration_ms" json:"duration_ms"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UserId int64 `db:"user_id" json:"user_id"`
 }

@@ -27,7 +27,9 @@ type ScanRequest struct {
 }
 
 func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
-	app.Post("/scan", func(c *fiber.Ctx) error {
+	app.Post("/scan", auth.JWTMiddleware, func(c *fiber.Ctx) error {
+		userID := c.Locals("user_id").(int64)
+		println("User id: ", userID)
 		var req ScanRequest
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
@@ -36,12 +38,13 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 		results := scan.ScanRange(req.Target, req.StartPort, req.EndPort)
 		for _, r := range results{
 			res, err := db.NamedExec(
-				"INSERT INTO scans (target, port, is_open, duration_ms) VALUES (:target, :port, :is_open, :duration_ms)",
+				"INSERT INTO scans (target, port, is_open, duration_ms, user_id) VALUES (:target, :port, :is_open, :duration_ms, :user_id)",
 				map[string]interface{}{
 					"target": req.Target,
 					"port": r.Port,
 					"is_open": r.IsOpen,
 					"duration_ms": r.Duration,
+					"user_id": userID,
 				},
 			)
 
@@ -60,18 +63,21 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 		return c.JSON(results)
 	})
 
-	app.Get("/scans", func(c *fiber.Ctx) error {
+	app.Get("/scans", auth.JWTMiddleware, func(c *fiber.Ctx) error {
 		target := c.Query("target", "")
 		openOnly := c.Query("open_only", "")
 		limitStr := c.Query("limit", "50")
 
+		userID := c.Locals("user_id").(int64)
+		
 		limit, err := strconv.Atoi(limitStr)
 		if err != nil || limit <= 0{
 			limit = 50
 		}
 		
-		query := `SELECT * FROM scans WHERE 1=1`
 		args := []interface{}{}
+		query := `SELECT * FROM scans WHERE user_id = ?`
+		args = append(args, userID)
 
 		if target != ""{
 			query += " AND target LIKE ?"
