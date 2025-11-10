@@ -66,14 +66,9 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 	app.Get("/scans", auth.JWTMiddleware, func(c *fiber.Ctx) error {
 		target := c.Query("target", "")
 		openOnly := c.Query("open_only", "")
-		limitStr := c.Query("limit", "50")
 
 		userID := c.Locals("user_id").(int64)
 		
-		limit, err := strconv.Atoi(limitStr)
-		if err != nil || limit <= 0{
-			limit = 50
-		}
 		
 		args := []interface{}{}
 		query := `SELECT * FROM scans WHERE user_id = ?`
@@ -88,11 +83,10 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 			query += " AND is_open = true"
 		}
 
-		query += " ORDER BY created_at DESC LIMIT ?"
-		args = append(args, limit)
+		query += " ORDER BY created_at DESC"
 		
 		scans := []models.ScanResult{}
-		err = db.Select(&scans, query, args...)
+		var err = db.Select(&scans, query, args...)
 		if err != nil{
 			log.Println("DB select error: ", err)
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
@@ -259,5 +253,21 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 	app.Get("/secure", auth.JWTMiddleware, func (c *fiber.Ctx) error {
 		userID := c.Locals("user_id")
 		return c.JSON(fiber.Map{"message": "Hello user!", "id": userID})
+	})
+
+	app.Get("/admin/cleanup-logs", func(c *fiber.Ctx) error {
+		logs := []struct {
+			ID           int64     `db:"id" json:"id"`
+			DeletedCount int64     `db:"deleted_count" json:"deleted_count"`
+			RunTimeMs    int64     `db:"run_time_ms" json:"run_time_ms"`
+			CreatedAt    time.Time `db:"created_at" json:"created_at"`
+		}{}
+
+		err := db.Select(&logs, "SELECT * FROM cleanup_logs ORDER BY created_at DESC LIMIT 20")
+		if err != nil{
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		return c.JSON(logs)
 	})
 }

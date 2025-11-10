@@ -50,6 +50,13 @@ func InitDB() *sqlx.DB{
 		password_hash TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
+
+	CREATE TABLE IF NOT EXISTS cleanup_logs(
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		deleted_count INTEGER,
+		run_time_ms INTEGER,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 
 	db.MustExec(schema)

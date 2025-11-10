@@ -29,6 +29,7 @@ func GetScansHandler(db *sqlx.DB) fiber.Handler{
 			IsOpen     bool   `db:"is_open" json:"is_open"`
 			DurationMs int64  `db:"duration_ms" json:"duration_ms"`
 			CreatedAt  string `db:"created_at" json:"created_at"`
+			UserId int64 `db:"user_id" json:"user_id"`
 		}
 
 		query := `SELECT * FROM scans ORDER BY created_at DESC LIMIT ? OFFSET ?;`

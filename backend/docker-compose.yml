@@ -1,0 +1,41 @@
+
+services:
+  backend:
+    build: ./
+    container_name: sentrinet-backend
+    ports:
+      - "8080:8080"
+    networks:
+      - sentrinet-net
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus
+    container_name: sentrinet-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - sentrinet-net
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana
+    container_name: sentrinet-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - sentrinet-net
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+networks:
+  sentrinet-net:
+    driver: bridge

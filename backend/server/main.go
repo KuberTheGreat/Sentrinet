@@ -12,18 +12,36 @@ import (
 
 	"github.com/KuberTheGreat/Sentrinet/internal/api"
 	"github.com/KuberTheGreat/Sentrinet/internal/db"
+	"github.com/KuberTheGreat/Sentrinet/internal/metrics"
 	"github.com/KuberTheGreat/Sentrinet/internal/realtime"
+	"github.com/ansrivas/fiberprometheus/v2"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
+
+
 
 func main(){
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	
 	database := db.InitDB()
+	db.StartCleanupScheduler(database)
+
 	app := fiber.New()
+
+	registry := prometheus.NewRegistry()
+
+	//register custom metrics
+	metrics.Register(registry)
+
+	prom := fiberprometheus.NewWithRegistry(registry, "sentrinet", "", "", nil)
+	prom.RegisterAt(app, "/metrics")
+	app.Use(prom.Middleware)
+	
+	
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "http://localhost:3000",

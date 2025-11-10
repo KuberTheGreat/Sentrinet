@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/KuberTheGreat/Sentrinet/internal/metrics"
 )
 
 type PortResult struct{
@@ -27,10 +29,14 @@ func ScanPort(target string, port int) PortResult{
 	duration := time.Since(start).Milliseconds()
 
 	if err != nil{
+		metrics.ClosedPorts.Inc()
 		return PortResult{Port: port, IsOpen: false, Duration: duration}
 	}
 
 	conn.Close()
+	metrics.OpenPorts.Inc()
+	metrics.TotalScans.Inc()
+	metrics.ScanDurationMs.Observe(float64(duration))
 	return PortResult{Port: port, IsOpen: true, Duration: duration}
 }
 
