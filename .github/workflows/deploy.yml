@@ -1,0 +1,25 @@
+name: Deploy Sentrinet
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  backend:
+    name: Deploy Backend to Render
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deploy
+        run: |
+          curl -X POST https://api.render.com/v1/services/Sentrinet/deploys \
+          -H 'Accept: application/json' \
+          -H 'Authorization: Bearer ${{ secrets.RENDER_API_KEY }}'
+  
+  frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Deploy
+        run: |
+          npx vercel --token ${{ secrets.VERCEL_TOKEN }} --prod --yes
