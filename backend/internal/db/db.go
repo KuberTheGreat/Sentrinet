@@ -31,7 +31,8 @@ func InitDB() *sqlx.DB{
 		end_port INTEGER NOT NULL,
 		interval_seconds INTEGER NOT NULL,
 		active INTEGER NOT NULL DEFAULT 1,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		user_id INTEGER REFERENCES users(id)
 	);
 
 	CREATE TABLE IF NOT EXISTS notifications(

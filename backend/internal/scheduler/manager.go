@@ -13,13 +13,14 @@ import (
 )
 
 type JobRow struct{
-	ID int64 `db: "id"`
+	ID int64 `db:"id"`
 	Target string `db:"target"`
 	StartPort int `db:"start_port"`
 	EndPort int `db:"end_port"`
 	IntervalSeconds int `db:"interval_seconds"`
 	Active int `db:"active"`
 	CreatedAt time.Time `db:"created_at"`
+	UserID int64 `db:"user_id"`
 }
 
 type Manager struct{
@@ -64,7 +65,7 @@ func (m *Manager) LoadAndStartAll() error{
 	return nil
 }
 
-func (m *Manager) CreateJob(target string, startPort, endPort int, interval time.Duration, active bool) (int64, error){
+func (m *Manager) CreateJob(target string, startPort, endPort int, interval time.Duration, active bool, userID int64) (int64, error){
 	intervalSec := int(interval.Seconds())
 	activeInt := 0
 	if active{
@@ -72,9 +73,9 @@ func (m *Manager) CreateJob(target string, startPort, endPort int, interval time
 	}
 
 	res, err := m.db.Exec(
-		`INSERT INTO jobs (target, start_port, end_port, interval_seconds, active)
-		VALUES (?, ?, ?, ?, ?)`,
-		target, startPort, endPort, intervalSec, activeInt,
+		`INSERT INTO jobs (target, start_port, end_port, interval_seconds, active, user_id)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		target, startPort, endPort, intervalSec, activeInt, userID,
 	)
 	if err != nil{
 		return 0, err
@@ -90,6 +91,7 @@ func (m *Manager) CreateJob(target string, startPort, endPort int, interval time
 			EndPort: endPort,
 			IntervalSeconds: intervalSec,
 			Active: activeInt,
+			UserID: userID,
 		}
 		if err := m.startRunner(jr); err != nil{
 			fmt.Printf("[Scheduler] created job %d but failed to start runner: %v\n", id, err)
@@ -175,12 +177,13 @@ func(m *Manager) executeScanAndSave(jr JobRow) error{
 	if err != nil{
 		for _, r := range results{
 			if _, e := m.db.NamedExec(
-				`INSERT INTO scans (target, port, is_open, duration_ms) VALUES (:target, :port, :is_open, :duration_ms)`,
+				`INSERT INTO scans (target, port, is_open, duration_ms, user_id) VALUES (:target, :port, :is_open, :duration_ms, :user_id)`,
 				map[string]interface{}{
 					"target": jr.Target,
 					"port": r.Port,
 					"is_open": r.IsOpen,
 					"duration_ms": r.Duration,
+					"user_id": jr.UserID,
 				},
 			); e != nil {
 				fmt.Printf("[Scheduler] recurring insert error: %v\n", e)
@@ -191,12 +194,13 @@ func(m *Manager) executeScanAndSave(jr JobRow) error{
 
 	for _, r := range results{
 		if _, e := tx.NamedExec(
-			`INSERT INTO scans (target, port, is_open, duration_ms) VALUES (:target, :port, :is_open, :duration_ms)`,
+			`INSERT INTO scans (target, port, is_open, duration_ms, user_id) VALUES (:target, :port, :is_open, :duration_ms, :user_id)`,
 			map[string]interface{}{
 				"target": jr.Target,
 				"port": r.Port,
 				"is_open": r.IsOpen,
 				"duration_ms": r.Duration,
+				"user_id": jr.UserID,
 			},
 		); e != nil {
 			fmt.Printf("[Scheduler] recurring insert error(tx): %v\n", e)

@@ -15,7 +15,7 @@ type Job struct{
 	Interval time.Duration
 }
 
-func StartJob(db *sqlx.DB, job Job){
+func StartJob(db *sqlx.DB, job Job, userId int64){
 	ticker := time.NewTicker(job.Interval)
 	go func(){
 		for{
@@ -25,13 +25,14 @@ func StartJob(db *sqlx.DB, job Job){
 			results := scan.ScanRange(job.Target, job.StartPort, job.EndPort)
 			for _, r := range results{
 				_, err := db.NamedExec(
-					`INSERT INTO scans (target, port, is_open, duration_ms)
-					VALUES (:target, :port, :is_open, :duration_ms)`,
+					`INSERT INTO scans (target, port, is_open, duration_ms, user_id)
+					VALUES (:target, :port, :is_open, :duration_ms, :user_id)`,
 					map[string]interface{}{
 						"target": job.Target,
 						"port": r.Port,
 						"is_open": r.IsOpen,
 						"duration_ms": r.Duration,
+						"user_id": userId,
 					},
 				)
 				if err != nil{

@@ -14,6 +14,7 @@ type JobRow struct {
 	IntervalSeconds int    `db:"interval_seconds" json:"interval_seconds"`
 	Active          int    `db:"active" json:"active"`
 	CreatedAt       string `db:"created_at" json:"created_at"`
+	UserID          int64  `db:"user_id" json:"user_id"`
 }
 
 func GetJobsHandler(db *sqlx.DB) fiber.Handler {

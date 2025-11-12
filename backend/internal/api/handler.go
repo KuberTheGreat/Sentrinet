@@ -153,15 +153,18 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 		fmt.Println("[Scheduler] failed to load jobs: ", err)
 	}
 
-	app.Post("/schedules", func(c *fiber.Ctx) error {
+	app.Post("/schedules", auth.JWTMiddleware, func(c *fiber.Ctx) error {
 		var req struct{
 			Target    string `json:"target"`
 			StartPort int    `json:"start_port"`
 			EndPort   int    `json:"end_port"`
 			IntervalSeconds int `json:"interval_seconds"`
 			Active    bool   `json:"active"`
+			UserID int `json:"user_id"`
 		}
 
+		userID := c.Locals("user_id").(int64)
+		
 		if err := c.BodyParser(&req); err != nil{
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -169,7 +172,7 @@ func SetupRoutes(app *fiber.App, db *sqlx.DB, wsManager *realtime.Manager){
 			return c.Status(400).JSON(fiber.Map{"error": "target, ports and interval seconds are required"})
 		}
 		interval := time.Duration(req.IntervalSeconds) * time.Second
-		id, err := schManager.CreateJob(req.Target, req.StartPort, req.EndPort, interval, req.Active)
+		id, err := schManager.CreateJob(req.Target, req.StartPort, req.EndPort, interval, req.Active,userID)
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
