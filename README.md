@@ -29,7 +29,7 @@ It is designed for security engineers, DevOps teams, and researchers who need fa
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-username>/sentrinet.git
+git clone https://github.com/KuberTheGreat/sentrinet.git
 cd sentrinet
 ```
 

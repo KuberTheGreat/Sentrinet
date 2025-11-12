@@ -41,7 +41,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center p-6">
+    <div className="min-h-screen from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center p-6">
       <div className="bg-gray-800 backdrop-blur-lg rounded-2xl shadow-2xl p-8 w-full max-w-md transition-all">
         <h1 className="text-3xl font-semibold text-center mb-6 text-gray-800">
           Create Your Account
