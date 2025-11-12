@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
   const fetchScans = async () => {
     try {
-      const res = await authFetch("http://localhost:8080/scans");
+      const res = await authFetch("https://sentrinet.onrender.com/scans");
       const data = await res.json();
       if (Array.isArray(data)) setScans(data);
       else if (Array.isArray(data.scans)) setScans(data.scans);
@@ -53,7 +53,7 @@ export default function DashboardPage() {
 
     setLoading(true);
     try {
-      const res = await authFetch("http://localhost:8080/scan", {
+      const res = await authFetch("https://sentrinet.onrender.com/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ target, start_port: startPort, end_port: endPort }),
